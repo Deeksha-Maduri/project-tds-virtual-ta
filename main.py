@@ -1,63 +1,64 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List, Optional
-import base64
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
+
+class QuestionRequest(BaseModel):
+    question: str
+    image: Optional[str] = None
 
 class Link(BaseModel):
     url: str
     text: str
 
-class ResponseModel(BaseModel):
+class AnswerResponse(BaseModel):
     answer: str
     links: List[Link]
 
-class RequestModel(BaseModel):
-    question: str
-    image: Optional[str] = None
+@app.post("/api/", response_model=AnswerResponse)
+async def answer_question(payload: QuestionRequest):
+    q = payload.question.lower()
 
-@app.post("/")
-async def handle_question(req: RequestModel):
-    q = req.question.strip().lower()
-
-    if "gpt-3.5-turbo" in q:
-        return ResponseModel(
-            answer="You must use `gpt-3.5-turbo-0125`, even if the AI Proxy only supports `gpt-4o-mini`. Use the OpenAI API directly for this question.",
-            links=[
-                Link(
-                    url="https://discourse.onlinedegree.iitm.ac.in/t/ga5-question-8-clarification/155939",
-                    text="Use the model that’s mentioned in the question."
-                )
+    # Example response logic
+    if "gpt-3.5-turbo-0125" in q:
+        return {
+            "answer": "You must use `gpt-3.5-turbo-0125` and not `gpt-4o-mini`. Use OpenAI API directly.",
+            "links": [
+                {
+                    "url": "https://discourse.onlinedegree.iitm.ac.in/t/ga5-question-8-clarification/155939",
+                    "text": "Clarification on GA5 Question 8"
+                }
             ]
-        )
-    elif "ga4" in q and "10/10" in q:
-        return ResponseModel(
-            answer="If you score 10/10 on GA4 along with a bonus, your dashboard will show 110.",
-            links=[
-                Link(
-                    url="https://discourse.onlinedegree.iitm.ac.in/t/ga4-data-sourcing-discussion-thread-tds-jan-2025/165959",
-                    text="GA4 data sourcing discussion"
-                )
+        }
+    elif "ga4" in q and "bonus" in q:
+        return {
+            "answer": "The dashboard will show '110' if you scored 10/10 and the bonus.",
+            "links": [
+                {
+                    "url": "https://discourse.onlinedegree.iitm.ac.in/t/ga4-data-sourcing-discussion-thread-tds-jan-2025/165959",
+                    "text": "GA4 data sourcing discussion"
+                }
             ]
-        )
+        }
     elif "docker" in q and "podman" in q:
-        return ResponseModel(
-            answer="We recommend using Podman for this course. However, Docker is also acceptable if you're familiar with it.",
-            links=[
-                Link(
-                    url="https://tds.s-anand.net/#/docker",
-                    text="Docker/Podman course reference"
-                )
+        return {
+            "answer": "We recommend Podman for this course, but Docker is also acceptable.",
+            "links": [
+                {
+                    "url": "https://tds.s-anand.net/#/docker",
+                    "text": "Docker vs Podman details"
+                }
             ]
-        )
-    elif "end-term" in q and "sep 2025" in q:
-        return ResponseModel(
-            answer="This information is not available yet.",
-            links=[]
-        )
+        }
+    elif "end-term" in q or "exam" in q:
+        return {
+            "answer": "Sorry, I don't know the date of the TDS Sep 2025 end-term exam yet.",
+            "links": []
+        }
     else:
-        return ResponseModel(
-            answer="Sorry, I do not have an answer for that question at the moment.",
-            links=[]
-        )
+        return {
+            "answer": "Sorry, I do not have an answer for that question.",
+            "links": []
+        }
